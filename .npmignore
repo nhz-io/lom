@@ -1,0 +1,10 @@
+.gitignore
+.npmignore
+.travis.yml
+node_modules
+source
+build
+coffeelint.json
+gulpfile.*
+npm-debug.log
+*.sublime-*
