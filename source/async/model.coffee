@@ -9,8 +9,8 @@ module.exports = class AsyncModel extends Model
 
   sync: (data, name, value) -> this
 
-  set_status: (data, value) ->
-    data._status = value
+  set_state: (data, value) ->
+    data._state = value
     data._notify? value
     if value in [ 'new', 'dirty', 'old' ] then @sync data
     return value
