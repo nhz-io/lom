@@ -18,8 +18,9 @@ module.exports = class Model
 
   apply: (data, source) ->
     for own name, validator of @_schema
-      if (source.hasOwnProperty name) and (NIL isnt value = validator.apply source[name])
-        @set data, name, value
+      if validator.enumerable
+        if (source.hasOwnProperty name) and (NIL isnt value = validator.apply source[name])
+          @set data, name, value
     return data
 
   get: (data, name) ->

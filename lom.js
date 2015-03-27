@@ -30,14 +30,34 @@ module.exports = AsyncModel = (function(superClass) {
     AsyncModel.__super__.constructor.call(this, schema);
   }
 
+  AsyncModel.prototype.apply = function(data, source) {
+    var _state, result;
+    _state = data._state;
+    data._state = 'lock';
+    result = AsyncModel.__super__.apply.call(this, data, source);
+    data._state = _state;
+    return result;
+  };
+
   AsyncModel.prototype.sync = function(data, name, value) {
     return this;
   };
 
-  AsyncModel.prototype.set_status = function(data, value) {
-    data._status = value;
+  AsyncModel.prototype.set = function(data, name, value) {
+    var result;
+    result = AsyncModel.__super__.set.call(this, data, name, value);
+    if (data._state !== 'lock') {
+      if (name !== '_state' && name !== '_status' && name !== '_notify') {
+        this.set(data, '_state', (data._state ? 'dirty' : 'new'));
+      }
+    }
+    return result;
+  };
+
+  AsyncModel.prototype.set_state = function(data, value) {
+    data._state = value;
     if (typeof data._notify === "function") {
-      data._notify(value);
+      data._notify(value, data._status);
     }
     if (value === 'new' || value === 'dirty' || value === 'old') {
       this.sync(data);
@@ -49,7 +69,7 @@ module.exports = AsyncModel = (function(superClass) {
 
 })(Model);
 
-},{"../core/model":8,"./schema":4,"extends__":14}],4:[function(require,module,exports){
+},{"../core/model":8,"./schema":4,"extends__":19}],4:[function(require,module,exports){
 var AsyncSchema, Schema, types,
   extend = require("extends__"),
   hasProp = {}.hasOwnProperty;
@@ -68,6 +88,7 @@ module.exports = AsyncSchema = (function(superClass) {
     if (!(this instanceof AsyncSchema)) {
       return new AsyncSchema(definition);
     }
+    definition._state = types.state;
     definition._status = types.status;
     definition._notify = types.callback;
     AsyncSchema.__super__.constructor.call(this, definition);
@@ -77,20 +98,25 @@ module.exports = AsyncSchema = (function(superClass) {
 
 })(Schema);
 
-},{"../core/schema":10,"./types":5,"extends__":14}],5:[function(require,module,exports){
+},{"../core/schema":10,"./types":5,"extends__":19}],5:[function(require,module,exports){
 var NIL, Type, ref, types;
 
 ref = require('../core/index'), NIL = ref.NIL, Type = ref.Type, types = ref.types;
 
 module.exports = {
-  status: new Type({
+  state: new Type({
     enumerable: false
   }, function(value) {
-    if (value === 'new' || value === 'dirty' || value === 'sync' || value === 'old' || value === 'error') {
+    if (value === 'new' || value === 'dirty' || value === 'sync' || value === 'busy' || value === 'lock' || value === 'old' || value === 'error') {
       return value;
     } else {
       return NIL;
     }
+  }),
+  status: new Type({
+    enumerable: false
+  }, function(value) {
+    return types.string.apply(value);
   }),
   callback: new Type({
     enumerable: false
@@ -149,8 +175,10 @@ module.exports = Model = (function() {
     for (name in ref) {
       if (!hasProp.call(ref, name)) continue;
       validator = ref[name];
-      if ((source.hasOwnProperty(name)) && (NIL !== (value = validator.apply(source[name])))) {
-        this.set(data, name, value);
+      if (validator.enumerable) {
+        if ((source.hasOwnProperty(name)) && (NIL !== (value = validator.apply(source[name])))) {
+          this.set(data, name, value);
+        }
       }
     }
     return data;
@@ -362,12 +390,159 @@ module.exports = types = {
 };
 
 },{"./nil":9,"./type":11}],13:[function(require,module,exports){
-window.LOM = {
-  core: require('./core'),
-  async: require('./async')
+module.exports = require('./crud/index');
+
+},{"./crud/index":14}],14:[function(require,module,exports){
+arguments[4][2][0].apply(exports,arguments)
+},{"./model":15,"./schema":16,"./types":17}],15:[function(require,module,exports){
+var CrudModel, Model, Schema,
+  extend = require("extends__"),
+  hasProp = {}.hasOwnProperty;
+
+Model = require('../async/model');
+
+Schema = require('./schema');
+
+module.exports = CrudModel = (function(superClass) {
+  extend(CrudModel, superClass);
+
+  function CrudModel(schema, adapter) {
+    if (!(this instanceof CrudModel)) {
+      return new CrudModel(schema, adapter);
+    }
+    if (!(schema && schema instanceof Schema)) {
+      schema = new Schema;
+    }
+    Object.defineProperty(this, '_adapter', {
+      enumerable: false,
+      value: adapter
+    });
+    CrudModel.__super__.constructor.call(this, schema);
+  }
+
+  CrudModel.prototype.sync = function(data) {
+    var base, base1, base2;
+    if (this._adapter != null) {
+      switch (data._state) {
+        case 'new':
+          this.set(data, '_status', 'create in progress');
+          this.set(data, '_state', 'busy');
+          if (typeof (base = this._adapter).create === "function") {
+            base.create(data, (function(_this) {
+              return function(err, res) {
+                if (err) {
+                  _this.set(data, '_status', err);
+                  return _this.set(data, '_state', 'error');
+                } else {
+                  _this.apply(data, res);
+                  _this.set(data, '_status', 'sync');
+                  return _this.set(data, '_state', 'sync');
+                }
+              };
+            })(this));
+          }
+          break;
+        case 'dirty':
+          this.set(data, '_status', 'update in progress');
+          this.set(data, '_state', 'busy');
+          if (typeof (base1 = this._adapter).update === "function") {
+            base1.update(data, (function(_this) {
+              return function(err, res) {
+                if (err) {
+                  _this.set(data, '_state', 'error');
+                  return _this.set(data, '_status', err);
+                } else {
+                  _this.apply(data, res);
+                  _this.set(data, '_state', 'sync');
+                  return _this.set(data, '_status', 'sync');
+                }
+              };
+            })(this));
+          }
+          break;
+        case 'old':
+          this.set(data, '_status', 'read in progress');
+          this.set(data, '_state', 'busy');
+          if (typeof (base2 = this._adapter).read === "function") {
+            base2.read(data, (function(_this) {
+              return function(err, res) {
+                if (err) {
+                  _this.set(data, '_state', 'error');
+                  return _this.set(data, '_status', err);
+                } else {
+                  _this.apply(data, res);
+                  _this.set(data, '_state', 'sync');
+                  return _this.set(data, '_status', 'sync');
+                }
+              };
+            })(this));
+          }
+      }
+    }
+    return this;
+  };
+
+  CrudModel.prototype.set = function(data, name, value) {
+    if (name === 'id') {
+      if (!data._state) {
+        data.id = value;
+        this.set(data, '_state', 'old');
+      }
+      return value;
+    }
+    return CrudModel.__super__.set.call(this, data, name, value);
+  };
+
+  return CrudModel;
+
+})(Model);
+
+},{"../async/model":3,"./schema":16,"extends__":19}],16:[function(require,module,exports){
+var CrudSchema, Schema, types,
+  extend = require("extends__"),
+  hasProp = {}.hasOwnProperty;
+
+Schema = require('../async/schema');
+
+types = require('./types');
+
+module.exports = CrudSchema = (function(superClass) {
+  extend(CrudSchema, superClass);
+
+  function CrudSchema(definition) {
+    if (definition == null) {
+      definition = {};
+    }
+    if (!(this instanceof Schema)) {
+      return new Schema(definition);
+    }
+    definition.id = types.id;
+    CrudSchema.__super__.constructor.call(this, definition);
+  }
+
+  return CrudSchema;
+
+})(Schema);
+
+},{"../async/schema":4,"./types":17,"extends__":19}],17:[function(require,module,exports){
+var Type, ref, types;
+
+ref = require('../core/index'), Type = ref.Type, types = ref.types;
+
+module.exports = {
+  id: new Type(function(value) {
+    return types.integer.apply(value);
+  })
 };
 
-},{"./async":1,"./core":6}],14:[function(require,module,exports){
+},{"../core/index":7}],18:[function(require,module,exports){
+window.LOM = {
+  core: require('./core'),
+  async: require('./async'),
+  crud: require('./crud')
+};
+
+},{"./async":1,"./core":6,"./crud":13}],19:[function(require,module,exports){
 var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
 
@@ -375,4 +550,4 @@ module.exports = function(ChildClass, ParentClass) {
   return extend(ChildClass, ParentClass);
 };
 
-},{}]},{},[13])
+},{}]},{},[18])
