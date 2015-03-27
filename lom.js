@@ -121,9 +121,11 @@ module.exports = Model = (function() {
 })();
 
 },{"./nil":3,"./schema":4,"./type":5}],3:[function(require,module,exports){
-module.exports = NIL(function() {
+var NIL;
+
+module.exports = NIL = function() {
   return NIL;
-});
+};
 
 },{}],4:[function(require,module,exports){
 var Schema;
@@ -198,7 +200,7 @@ module.exports = types = {
     }
   }),
   integer: new Type(function(value) {
-    if (NIL !== (value = number.apply(value))) {
+    if (NIL !== (value = types.number.apply(value))) {
       return Math.floor(value);
     } else {
       return NIL;
@@ -240,7 +242,7 @@ module.exports = types = {
     }
   }),
   hash: new Type(function(value) {
-    if ((NIL !== types.object.apply(value)) && (NIL === array.apply(value))) {
+    if ((NIL !== types.object.apply(value)) && (NIL === types.array.apply(value))) {
       return value;
     } else {
       return NIL;

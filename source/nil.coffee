@@ -1,1 +1,1 @@
-module.exports = NIL -> NIL
+module.exports = NIL = -> NIL

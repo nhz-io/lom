@@ -9,7 +9,7 @@ module.exports = types =
       NIL
 
   integer: new Type (value) ->
-    if NIL isnt value =   number.apply value
+    if NIL isnt value = types.number.apply value
       Math.floor value
     else
       NIL
@@ -30,7 +30,7 @@ module.exports = types =
     if Array.isArray value then value else NIL
 
   hash: new Type (value) ->
-    if (NIL isnt  types.object.apply value) and (NIL is  array.apply value)
+    if (NIL isnt  types.object.apply value) and (NIL is types.array.apply value)
       value
     else
       NIL
