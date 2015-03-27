@@ -1,1 +1,1 @@
-require './async/index'
+module.exports = require './async/index'

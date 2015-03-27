@@ -1,5 +1,5 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-require('./async/index');
+module.exports = require('./async/index');
 
 },{"./async/index":2}],2:[function(require,module,exports){
 module.exports = {
@@ -68,7 +68,7 @@ module.exports = AsyncSchema = (function(superClass) {
     if (!(this instanceof AsyncSchema)) {
       return new AsyncSchema(definition);
     }
-    definition._status = types.statys;
+    definition._status = types.status;
     definition._notify = types.callback;
     AsyncSchema.__super__.constructor.call(this, definition);
   }
@@ -100,7 +100,7 @@ module.exports = {
 };
 
 },{"../core/index":7}],6:[function(require,module,exports){
-require('./core/index');
+module.exports = require('./core/index');
 
 },{"./core/index":7}],7:[function(require,module,exports){
 module.exports = {
