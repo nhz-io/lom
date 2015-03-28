@@ -420,6 +420,16 @@ module.exports = CrudModel = (function(superClass) {
     CrudModel.__super__.constructor.call(this, schema);
   }
 
+  CrudModel.prototype.create = function(data) {
+    var result;
+    if (data == null) {
+      data = {};
+    }
+    result = CrudModel.__super__.create.apply(this, arguments);
+    result.id = data.id;
+    return result;
+  };
+
   CrudModel.prototype.sync = function(data) {
     var base, base1, base2;
     if (this._adapter != null) {
@@ -488,7 +498,7 @@ module.exports = CrudModel = (function(superClass) {
         data.id = value;
         this.set(data, '_state', 'old');
       }
-      return value;
+      return data.id;
     }
     return CrudModel.__super__.set.call(this, data, name, value);
   };

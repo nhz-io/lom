@@ -8,6 +8,11 @@ module.exports = class CrudModel extends Model
     Object.defineProperty this, '_adapter', enumerable:false, value: adapter
     super schema
 
+  create: (data = {}) ->
+    result = super
+    result.id = data.id
+    return result
+
   sync: (data) ->
     if @_adapter?
       switch data._state
@@ -54,5 +59,5 @@ module.exports = class CrudModel extends Model
       unless data._state
         data.id = value
         @set data, '_state', 'old'
-      return value
+      return data.id
     super data, name, value
