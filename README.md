@@ -27,7 +27,7 @@ gulp
 
 ## VERSION
 
-#### 0.0.8
+#### 0.0.9
 
 [travis-image]: https://travis-ci.org/nhz-io/lom.svg
 [travis-url]: https://travis-ci.org/nhz-io/lom

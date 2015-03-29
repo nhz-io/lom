@@ -26,5 +26,5 @@ module.exports = class AsyncModel extends Model
   set_state: (data, value) ->
     data._state = value
     data._notify? value, data._status
-    if value in [ 'new', 'dirty', 'old' ] then @sync data
+    if value in [ 'init', 'new', 'dirty', 'old' ] then @sync data
     return value

@@ -59,7 +59,7 @@ module.exports = AsyncModel = (function(superClass) {
     if (typeof data._notify === "function") {
       data._notify(value, data._status);
     }
-    if (value === 'new' || value === 'dirty' || value === 'old') {
+    if (value === 'init' || value === 'new' || value === 'dirty' || value === 'old') {
       this.sync(data);
     }
     return value;
