@@ -526,7 +526,7 @@ module.exports = CrudSchema = (function(superClass) {
     if (!(this instanceof Schema)) {
       return new Schema(definition);
     }
-    definition.id = types.id;
+    definition.id || (definition.id = types.id);
     CrudSchema.__super__.constructor.call(this, definition);
   }
 
