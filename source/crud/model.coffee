@@ -52,11 +52,22 @@ module.exports = class CrudModel extends Model
               @set data, '_state', 'sync'
               @set data, '_status', 'sync'
 
+        when 'init'
+          @set data, '_status', 'init in progress'
+          @_adapter.read? data, (err, res) =>
+            if err
+              @set data, '_state', 'error'
+              @set data, '_status', err
+            else
+              @apply data, res
+              @set data, '_state', 'sync'
+              @set data, '_status', 'sync'
+
     return this
 
   set: (data, name, value) ->
     if name is 'id'
-      unless data._state
+      if not data._state or data._state is 'init'
         data.id = value
         @set data, '_state', 'old'
       return data.id

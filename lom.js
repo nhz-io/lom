@@ -99,15 +99,18 @@ module.exports = AsyncSchema = (function(superClass) {
 })(Schema);
 
 },{"../core/schema":10,"./types":5,"extends__":19}],5:[function(require,module,exports){
-var NIL, Type, ref, types;
+var NIL, Type, ref, states, types,
+  indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
 ref = require('../core/index'), NIL = ref.NIL, Type = ref.Type, types = ref.types;
+
+states = ['init', 'new', 'dirty', 'sync', 'busy', 'lock', 'old', 'error'];
 
 module.exports = {
   state: new Type({
     enumerable: false
   }, function(value) {
-    if (value === 'new' || value === 'dirty' || value === 'sync' || value === 'busy' || value === 'lock' || value === 'old' || value === 'error') {
+    if (indexOf.call(states, value) >= 0) {
       return value;
     } else {
       return NIL;
@@ -431,7 +434,7 @@ module.exports = CrudModel = (function(superClass) {
   };
 
   CrudModel.prototype.sync = function(data) {
-    var base, base1, base2;
+    var base, base1, base2, base3;
     if (this._adapter != null) {
       switch (data._state) {
         case 'new':
@@ -487,6 +490,23 @@ module.exports = CrudModel = (function(superClass) {
               };
             })(this));
           }
+          break;
+        case 'init':
+          this.set(data, '_status', 'init in progress');
+          if (typeof (base3 = this._adapter).read === "function") {
+            base3.read(data, (function(_this) {
+              return function(err, res) {
+                if (err) {
+                  _this.set(data, '_state', 'error');
+                  return _this.set(data, '_status', err);
+                } else {
+                  _this.apply(data, res);
+                  _this.set(data, '_state', 'sync');
+                  return _this.set(data, '_status', 'sync');
+                }
+              };
+            })(this));
+          }
       }
     }
     return this;
@@ -494,7 +514,7 @@ module.exports = CrudModel = (function(superClass) {
 
   CrudModel.prototype.set = function(data, name, value) {
     if (name === 'id') {
-      if (!data._state) {
+      if (!data._state || data._state === 'init') {
         data.id = value;
         this.set(data, '_state', 'old');
       }
